@@ -1,0 +1,623 @@
+# -*- coding: utf-8 -*-
+# MANUFACTURING ANALYTICS - STEP 4
+# ML PREDICTION MODEL
+#
+# Is step mein sikhenge:
+#   1. Machine Learning kya hota hai - simple explanation
+#   2. Data prepare karna (features + labels)
+#   3. Train/Test split karna
+#   4. Random Forest model banana aur train karna
+#   5. Model accuracy check karna
+#   6. Naye data pe prediction karna
+#   7. Feature importance - kaun sa factor sabse important
+#   8. Model save karna (reuse ke liye)
+#
+# Install: pip install scikit-learn joblib
+# Run    : python step4_ml_model.py
+
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+import pyodbc
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import seaborn as sns
+
+# Scikit-learn = Python ka ML library
+from sklearn.ensemble import RandomForestClassifier
+# RandomForest = bahut saare decision trees milke ek bada model
+# Classifier  = category predict karta hai (HIGH ya LOW)
+
+from sklearn.model_selection import train_test_split, cross_val_score
+# train_test_split = data ko 2 parts mein todo: training aur testing
+# cross_val_score  = model ki accuracy zyada accurately check karna
+
+from sklearn.metrics import (
+    accuracy_score,           # Overall accuracy %
+    classification_report,    # Precision, Recall, F1 score
+    confusion_matrix          # Kahan galti hua - matrix form mein
+)
+from sklearn.preprocessing import LabelEncoder
+# LabelEncoder = text categories ko numbers mein badlo
+# (ML sirf numbers samajhta hai, text nahi)
+
+import joblib   # Model ko file mein save karne ke liye
+
+print("=" * 60)
+print("  STEP 4 - ML Prediction Model")
+print("=" * 60)
+print()
+
+# ---------------------------------------------------------------
+# ML KYA HOTA HAI? - Simple Explanation
+#
+# Traditional Programming:
+#   Rules (by human) + Data = Output
+#   Example: IF temp > 85 AND age > 5 THEN high_defect
+#
+# Machine Learning:
+#   Data + Output = Rules (machine seekhti hai!)
+#   Machine khud rules dhundh leti hai data se
+#
+# Hamara goal:
+#   Input  = temperature, pressure, machine age, shift, etc.
+#   Output = HIGH DEFECT hoga ya LOW DEFECT?
+#
+# Random Forest kya hai?
+#   - 100 alag Decision Trees
+#   - Har tree data ka ek random subset dekh ke decision leta hai
+#   - Final answer = majority vote (jitne zyada trees bolen, woh answer)
+#   - Ek akele tree se zyada accurate hota hai
+# ---------------------------------------------------------------
+
+# ---------------------------------------------------------------
+# SECTION A: CONNECTION + DATA
+# ---------------------------------------------------------------
+SERVER_NAME   = "LAPTOP-LG4BEQ1J\\SQLEXPRESS"
+DATABASE_NAME = "FactoryAnalytics"
+
+conn = pyodbc.connect(
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=" + SERVER_NAME + ";"
+    "Database=" + DATABASE_NAME + ";"
+    "Trusted_Connection=yes;",
+    autocommit=True
+)
+
+df = pd.read_sql_query(
+    "SELECT p.*, m.machine_name, m.department, m.age_years, "
+    "e.experience_yrs, pr.product_name, pr.category "
+    "FROM production p "
+    "INNER JOIN machines  m  ON p.machine_id = m.machine_id "
+    "INNER JOIN employees e  ON p.emp_id     = e.emp_id "
+    "INNER JOIN products  pr ON p.product_id = pr.product_id",
+    conn
+)
+conn.close()
+
+df['prod_date']   = pd.to_datetime(df['prod_date'])
+df['defect_rate'] = df['units_defective'] / df['units_made'] * 100
+
+print("  [OK] Data loaded: " + str(len(df)) + " rows")
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION B: TARGET VARIABLE BANANA (LABEL)
+#
+# ML ko batana padta hai - yeh row "good" hai ya "bad"
+# Isko TARGET ya LABEL kehte hain
+#
+# Hamara label:
+#   defect_rate > 4.0% = HIGH DEFECT = 1 (problem!)
+#   defect_rate <= 4.0% = LOW DEFECT  = 0 (ok)
+#
+# Threshold kaise choose karein?
+#   - Industry standard dekho
+#   - Ya apni data ka 75th percentile use karo
+#   - Yahan hum 75th percentile use karenge (data-driven approach)
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP B: TARGET VARIABLE")
+print("-" * 60)
+
+# 75th percentile = upper 25% ko "high defect" maano
+threshold = df['defect_rate'].quantile(0.75)
+threshold = round(threshold, 2)
+
+df['high_defect'] = (df['defect_rate'] > threshold).astype(int)
+# astype(int) = True->1, False->0
+
+high_count = df['high_defect'].sum()
+low_count  = len(df) - high_count
+
+print()
+print("  Threshold (75th percentile): " + str(threshold) + "%")
+print("  HIGH DEFECT (1): " + str(high_count) + " rows (" + str(round(high_count/len(df)*100,1)) + "%)")
+print("  LOW DEFECT  (0): " + str(low_count)  + " rows (" + str(round(low_count/len(df)*100,1))  + "%)")
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION C: FEATURES PREPARE KARNA
+#
+# Features = input variables jo model use karega predict karne ke liye
+# Inhe X kehte hain
+# Target = jo predict karna hai
+# Ise y kehte hain
+#
+# Rules:
+#   - Sirf woh columns lo jo LOGICALLY relevant hain
+#   - Future mein available honge (no data leakage)
+#   - units_defective NAHI lena - woh toh answer hai!
+#   - defect_rate bhi NAHI - ussi se target banaya hai
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP C: FEATURES PREPARE KARNA")
+print("-" * 60)
+
+# Categorical (text) columns ko numbers mein badlo
+# ML algorithms sirf numbers samajhte hain
+le_shift = LabelEncoder()
+le_dept  = LabelEncoder()
+le_prod  = LabelEncoder()
+
+df['shift_num'] = le_shift.fit_transform(df['shift'])
+df['dept_num']  = le_dept.fit_transform(df['department'])
+df['prod_num']  = le_prod.fit_transform(df['product_name'])
+
+# fit_transform = pehle "fit" (categories seekho) phir "transform" (numbers dedo)
+# Morning=0, Evening=1, Night=2 (alphabetically sort hota hai)
+
+print()
+print("  Shift encoding: " + str(dict(zip(le_shift.classes_,
+      le_shift.transform(le_shift.classes_)))))
+print("  Dept encoding : " + str(dict(zip(le_dept.classes_,
+      le_dept.transform(le_dept.classes_)))))
+
+# Feature list - yeh sab ML model ko denge
+feature_cols = [
+    'temperature',      # Machine ka temperature
+    'pressure',         # Machine ka pressure
+    'downtime_hrs',     # Pichla downtime
+    'age_years',        # Machine ki age
+    'vibration_level',  # Vibration
+    'humidity',         # Humidity
+    'experience_yrs',   # Operator ka experience
+    'units_made',       # Kitne units banaye
+    'shift_num',        # Kaunsi shift (encoded)
+    'dept_num',         # Kaunsa department (encoded)
+]
+
+X = df[feature_cols]   # Features matrix
+y = df['high_defect']  # Target vector
+
+print()
+print("  Features (X): " + str(len(feature_cols)) + " columns")
+print("  Target   (y): high_defect (0=Low, 1=High)")
+print()
+print("  Feature columns:")
+for i, col in enumerate(feature_cols, 1):
+    print("    " + str(i) + ". " + col)
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION D: TRAIN TEST SPLIT
+#
+# Data ko 2 parts mein todo:
+#   Training set (80%) = model yahan se seekhega
+#   Testing set  (20%) = model yahan test hoga (unseen data)
+#
+# Kyun split karte hain?
+#   Agar saara data pe train karo aur ussi pe test karo
+#   toh model "cheating" kar raha hoga - answers yaad hain!
+#   Unseen data pe test = real-world performance pata chalti hai
+#
+# Analogy:
+#   Training = exam ki tayyari
+#   Testing  = actual exam (new questions)
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP D: TRAIN TEST SPLIT (80% train, 20% test)")
+print("-" * 60)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,      # 20% test ke liye
+    random_state=42,    # Same split hamesha (reproducible)
+    stratify=y          # Dono sets mein same HIGH/LOW ratio raho
+    # stratify = important! Warna ek set mein zyada HIGH, doosre mein kam ho sakta
+)
+
+print()
+print("  Total data       : " + str(len(df)) + " rows")
+print("  Training set     : " + str(len(X_train)) + " rows (80%)")
+print("  Testing set      : " + str(len(X_test))  + " rows (20%)")
+print()
+print("  Training HIGH    : " + str(y_train.sum()) + " | LOW: " + str((y_train==0).sum()))
+print("  Testing  HIGH    : " + str(y_test.sum())  + " | LOW: " + str((y_test==0).sum()))
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION E: MODEL BANANA AUR TRAIN KARNA
+#
+# RandomForestClassifier parameters:
+#   n_estimators = kitne trees banao (zyada = accurate lekin slow)
+#   max_depth    = har tree kitna deep ho (zyada = overfit ka risk)
+#   min_samples_split = node split karne ke liye minimum samples
+#   random_state = reproducibility ke liye
+#   n_jobs=-1    = saare CPU cores use karo (fast)
+#
+# Overfit kya hota hai?
+#   Model training data bahut achhe se yaad kar leta hai
+#   But new data pe galat predict karta hai
+#   Like: Exam questions yaad kar lo, samjho nahi
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP E: MODEL TRAIN KARNA")
+print("-" * 60)
+print()
+print("  RandomForest = 100 decision trees ka ensemble")
+print("  Training ho raha hai...")
+
+model = RandomForestClassifier(
+    n_estimators=100,        # 100 trees
+    max_depth=10,            # Max 10 levels deep
+    min_samples_split=5,     # Split ke liye minimum 5 samples chahiye
+    min_samples_leaf=2,      # Leaf node mein minimum 2 samples
+    random_state=42,
+    n_jobs=-1                # All CPU cores
+)
+
+# fit() = model train karo
+# Yeh line X_train data dekh ke rules seekhti hai
+model.fit(X_train, y_train)
+
+print("  [OK] Model trained!")
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION F: MODEL EVALUATE KARNA
+#
+# Accuracy = (Correct Predictions) / (Total Predictions) * 100
+#
+# Confusion Matrix:
+#   Actual LOW,  Predicted LOW  = True Negative  (TN) - CORRECT
+#   Actual HIGH, Predicted HIGH = True Positive  (TP) - CORRECT
+#   Actual LOW,  Predicted HIGH = False Positive (FP) - WRONG (false alarm)
+#   Actual HIGH, Predicted LOW  = False Negative (FN) - WRONG (missed!)
+#
+# Precision = TP / (TP + FP)
+#   Jab model HIGH bolta hai, kitne % sach mein HIGH hote hain?
+#
+# Recall = TP / (TP + FN)
+#   Sab HIGH cases mein se kitne % dhundh paya?
+#
+# F1 Score = Precision aur Recall ka balance
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP F: MODEL EVALUATION")
+print("-" * 60)
+
+y_pred = model.predict(X_test)   # Test data pe predict karo
+y_prob = model.predict_proba(X_test)  # Probability bhi nikalo
+
+accuracy = accuracy_score(y_test, y_pred)
+cm       = confusion_matrix(y_test, y_pred)
+
+print()
+print("  Model Accuracy  : " + str(round(accuracy*100, 2)) + "%")
+print()
+
+# Confusion Matrix print karo
+tn, fp, fn, tp = cm.ravel()   # ravel() = flatten karo
+print("  Confusion Matrix:")
+print("  " + "-" * 35)
+print("                   Predicted")
+print("                   LOW    HIGH")
+print("  Actual   LOW    {:4d}   {:4d}  <- True Neg / False Alarm".format(tn, fp))
+print("           HIGH   {:4d}   {:4d}  <- Missed   / Caught!".format(fn, tp))
+print("  " + "-" * 35)
+print()
+print("  Correct: {:4d} | Wrong: {:4d}".format(tn+tp, fp+fn))
+print("  False Alarms (FP) : {:4d}  (LOW tha, HIGH bola)".format(fp))
+print("  Missed Defects(FN): {:4d}  (HIGH tha, LOW bola) <- DANGEROUS!".format(fn))
+print()
+
+# Classification Report
+print("  Classification Report:")
+print("  " + "-" * 50)
+report = classification_report(
+    y_test, y_pred,
+    target_names=['LOW Defect', 'HIGH Defect']
+)
+for line in report.split('\n'):
+    print("  " + line)
+
+# Cross Validation - 5-fold
+# Data ko 5 parts mein todo, 5 baar test karo
+# Ek baar ka result lucky/unlucky ho sakta hai
+# 5 baar ka average = zyada reliable accuracy
+print()
+print("  Cross Validation (5-fold):")
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+print("  Fold scores: " + str([round(s,3) for s in cv_scores]))
+print("  Mean Accuracy: " + str(round(cv_scores.mean()*100, 2)) + "% (+/- " + str(round(cv_scores.std()*100,2)) + "%)")
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION G: FEATURE IMPORTANCE
+# Kaun sa input variable sabse zyada important hai?
+# Random Forest automatically calculate karta hai
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP G: FEATURE IMPORTANCE")
+print("  (Kaunsa factor defect predict karne mein sabse helpful?)")
+print("-" * 60)
+
+importance_df = pd.DataFrame({
+    'feature':    feature_cols,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+print()
+print("  Rank  Feature            Importance  Bar")
+print("  " + "-" * 55)
+for i, (_, row) in enumerate(importance_df.iterrows(), 1):
+    bar     = "#" * int(row['importance'] * 50)
+    pct     = round(row['importance'] * 100, 1)
+    print("  {:2d}.  {:<18} {:>5.1f}%   {}".format(
+        i, row['feature'], pct, bar))
+
+top_feature = importance_df.iloc[0]['feature']
+print()
+print("  Most Important Feature: " + top_feature)
+print("  Iska matlab: " + top_feature + " ko control karo = defects kam hoge!")
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION H: PREDICTION FUNCTION
+# Naya production run aane se pehle predict karo
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP H: LIVE PREDICTION")
+print("-" * 60)
+
+def predict_defect(temperature, pressure, downtime, age,
+                   vibration, humidity, experience, units, shift, dept):
+    """
+    Ek naye production run ke liye predict karo.
+
+    Parameters:
+        temperature : Machine temperature (degC)
+        pressure    : Machine pressure (Bar)
+        downtime    : Previous downtime (hours)
+        age         : Machine age (years)
+        vibration   : Vibration level (mm/s)
+        humidity    : Humidity (%)
+        experience  : Operator experience (years)
+        units       : Units to make
+        shift       : 'Morning' / 'Evening' / 'Night'
+        dept        : 'Machining' / 'Assembly' / 'Pressing' / etc.
+
+    Returns:
+        prediction string
+    """
+    shift_enc = le_shift.transform([shift])[0]
+    dept_enc  = le_dept.transform([dept])[0]
+
+    X_new = pd.DataFrame([[
+        temperature, pressure, downtime, age,
+        vibration, humidity, experience, units,
+        shift_enc, dept_enc
+    ]], columns=feature_cols)
+
+    pred     = model.predict(X_new)[0]
+    prob     = model.predict_proba(X_new)[0]
+
+    result = "HIGH DEFECT RISK" if pred == 1 else "LOW DEFECT RISK"
+    symbol = "[!!]" if pred == 1 else "[OK]"
+
+    print("  " + symbol + " Prediction : " + result)
+    print("       LOW  probability : " + str(round(prob[0]*100, 1)) + "%")
+    print("       HIGH probability : " + str(round(prob[1]*100, 1)) + "%")
+    return pred, prob
+
+# Test case 1 - Buri conditions
+print()
+print("  Test 1: Buri conditions (high temp, night, old machine)")
+print("  " + "-" * 45)
+predict_defect(
+    temperature=91, pressure=7.2, downtime=1.8,
+    age=7, vibration=4.5, humidity=70,
+    experience=2, units=200,
+    shift='Night', dept='Machining'
+)
+
+# Test case 2 - Aachi conditions
+print()
+print("  Test 2: Normal conditions (low temp, morning, new machine)")
+print("  " + "-" * 45)
+predict_defect(
+    temperature=70, pressure=5.0, downtime=0.2,
+    age=1, vibration=2.0, humidity=55,
+    experience=9, units=400,
+    shift='Morning', dept='Assembly'
+)
+
+# Test case 3 - Mixed conditions
+print()
+print("  Test 3: Mixed conditions")
+print("  " + "-" * 45)
+predict_defect(
+    temperature=80, pressure=6.0, downtime=0.8,
+    age=4, vibration=3.2, humidity=60,
+    experience=5, units=350,
+    shift='Evening', dept='Pressing'
+)
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION I: MODEL SAVE KARNA
+# Trained model ko file mein save karo
+# Baar baar train karne ki zaroorat nahi
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP I: MODEL SAVE KARNA")
+print("-" * 60)
+
+import pickle
+
+# Model save karo
+with open('defect_prediction_model.pkl', 'wb') as f:
+    pickle.dump(model, f)
+
+# Encoders bhi save karo (predict ke waqt chahiye honge)
+with open('label_encoders.pkl', 'wb') as f:
+    pickle.dump({'shift': le_shift, 'dept': le_dept, 'prod': le_prod}, f)
+
+# Feature list bhi save karo
+with open('feature_cols.pkl', 'wb') as f:
+    pickle.dump(feature_cols, f)
+
+print()
+print("  [OK] defect_prediction_model.pkl  - main model")
+print("  [OK] label_encoders.pkl           - encoders")
+print("  [OK] feature_cols.pkl             - feature list")
+print()
+print("  Reuse karne ke liye:")
+print("  model = pickle.load(open('defect_prediction_model.pkl','rb'))")
+print()
+
+
+# ---------------------------------------------------------------
+# SECTION J: VISUALIZATION - Model Results
+# ---------------------------------------------------------------
+print("-" * 60)
+print("  STEP J: CHARTS BANANA")
+print("-" * 60)
+
+plt.style.use('seaborn-v0_8-whitegrid')
+C_BLUE = '#2E86AB'; C_RED = '#C73E1D'; C_GREEN = '#3BB273'; C_ORANGE = '#F18F01'
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle('ML Model Results - Defect Prediction', fontsize=15, fontweight='bold')
+
+# --- Chart 1: Feature Importance ---
+ax1 = axes[0, 0]
+colors_fi = [C_RED if i == 0 else C_BLUE for i in range(len(importance_df))]
+bars = ax1.barh(
+    importance_df['feature'][::-1],       # reverse karo (top = most important)
+    importance_df['importance'][::-1]*100,
+    color=colors_fi[::-1], alpha=0.85
+)
+for bar in bars:
+    w = bar.get_width()
+    ax1.text(w+0.3, bar.get_y()+bar.get_height()/2,
+             str(round(w,1))+'%', va='center', fontsize=8)
+ax1.set_title('Feature Importance', fontweight='bold')
+ax1.set_xlabel('Importance (%)')
+ax1.set_xlim(0, importance_df['importance'].max()*100*1.25)
+
+# --- Chart 2: Confusion Matrix Heatmap ---
+ax2 = axes[0, 1]
+cm_pct = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis] * 100
+# Percentage mein convert karo
+
+sns.heatmap(
+    cm_pct, annot=True, fmt='.1f', ax=ax2,
+    cmap='Blues',
+    xticklabels=['Predicted LOW','Predicted HIGH'],
+    yticklabels=['Actual LOW','Actual HIGH'],
+    cbar_kws={'label': '%'}
+)
+ax2.set_title('Confusion Matrix (%)', fontweight='bold')
+
+# Annotations add karo
+ax2.text(0.5, -0.15, 'Blue = Correct | Top-Right & Bottom-Left = Wrong',
+         transform=ax2.transAxes, ha='center', fontsize=8, color='gray')
+
+# --- Chart 3: Prediction Probability Distribution ---
+ax3 = axes[1, 0]
+prob_high = y_prob[:, 1]  # HIGH defect ki probability
+
+# Alag alag color - actual HIGH vs actual LOW
+mask_actual_high = (y_test == 1).values
+mask_actual_low  = (y_test == 0).values
+
+ax3.hist(prob_high[mask_actual_low],  bins=20, alpha=0.6,
+         color=C_GREEN, label='Actual: LOW Defect',  edgecolor='white')
+ax3.hist(prob_high[mask_actual_high], bins=20, alpha=0.6,
+         color=C_RED,   label='Actual: HIGH Defect', edgecolor='white')
+ax3.axvline(x=0.5, color='black', linestyle='--', linewidth=1.5,
+            label='Decision Boundary (0.5)')
+ax3.set_title('Prediction Probability Distribution', fontweight='bold')
+ax3.set_xlabel('Probability of HIGH Defect')
+ax3.set_ylabel('Count')
+ax3.legend(fontsize=8)
+# Good model mein: green bars left mein, red bars right mein
+
+# --- Chart 4: Actual vs Predicted sample ---
+ax4 = axes[1, 1]
+sample_idx = np.arange(60)
+actual_sample    = y_test.values[:60]
+predicted_sample = y_pred[:60]
+correct = (actual_sample == predicted_sample)
+
+ax4.scatter(sample_idx[correct],  actual_sample[correct],
+            c=C_GREEN, s=40, alpha=0.8, label='Correct', zorder=3)
+ax4.scatter(sample_idx[~correct], actual_sample[~correct],
+            c=C_RED, s=60, marker='x', alpha=0.9, label='Wrong', zorder=4, linewidths=2)
+
+ax4.set_title('Actual vs Predicted (first 60 test samples)', fontweight='bold')
+ax4.set_xlabel('Sample Index')
+ax4.set_ylabel('Actual Label (0=LOW, 1=HIGH)')
+ax4.set_yticks([0, 1])
+ax4.set_yticklabels(['LOW', 'HIGH'])
+ax4.legend(fontsize=9)
+ax4.text(0.02, 0.95, 'Accuracy: '+str(round(accuracy*100,1))+'%',
+         transform=ax4.transAxes, fontsize=10, fontweight='bold',
+         color=C_GREEN, va='top')
+
+plt.tight_layout()
+plt.savefig('step4_ml_results.png', dpi=150, bbox_inches='tight')
+print()
+print("  [OK] step4_ml_results.png saved!")
+plt.show()
+
+
+print()
+print("=" * 60)
+print("  STEP 4 COMPLETE!")
+print("=" * 60)
+print()
+print("  Model Summary:")
+print("  Algorithm : Random Forest (100 trees)")
+print("  Features  : " + str(len(feature_cols)) + " input variables")
+print("  Accuracy  : " + str(round(accuracy*100, 2)) + "%")
+print("  CV Score  : " + str(round(cv_scores.mean()*100, 2)) + "% (5-fold)")
+print()
+print("  Aaj jo seekha:")
+print("  - ML kya hai (data se rules seekhna)")
+print("  - train_test_split() = data ka 80/20 split")
+print("  - model.fit()        = model train karna")
+print("  - model.predict()    = naya data pe prediction")
+print("  - accuracy_score()   = kitna sahi predict kiya")
+print("  - confusion_matrix() = kahan galti hua")
+print("  - feature_importances_ = kaun sa factor important")
+print("  - pickle.dump()      = model save karna")
+print()
+print("  Key Insight:")
+print("  - " + top_feature + " = Most important factor")
+print("  - Is factor ko monitor karo = defects predict kar sakte ho")
+print()
+print("  Next: Step 5 - Interactive Power BI Style Dashboard (Plotly)")
+print("  Browser mein open hoga - zoom, filter, hover sab milega!")

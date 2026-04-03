@@ -1,0 +1,8 @@
+product_id,product_name,category,total_units,total_defects,revenue_lost,defect_rate
+P005,Cylinder Head,Engine Parts,120005,3508,2631000.0,2.92
+P002,Gear Box Cover,Transmission,123472,3535,1696800.0,2.86
+P006,Brake Disc,Braking System,143882,3969,1508220.0,2.76
+P003,Axle Rod 40mm,Drive Train,150462,4165,1332800.0,2.77
+P007,Clutch Plate,Transmission,137954,3840,1113600.0,2.78
+P001,Engine Piston,Engine Parts,103419,2877,719250.0,2.78
+P004,Ball Bearing,Bearings,132032,3828,363660.0,2.9

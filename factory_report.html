@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>Manufacturing Analytics Report</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    color: #2c3e50;
+    background: #f4f6f8;
+    padding: 20px;
+}
+.page { max-width: 1100px; margin: 0 auto; }
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #2E86AB, #1a5276);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 10px;
+    margin-bottom: 24px;
+}
+.header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.header p  { font-size: 13px; opacity: 0.85; }
+
+/* Section titles */
+.section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2E86AB;
+    border-left: 4px solid #2E86AB;
+    padding-left: 10px;
+    margin: 28px 0 14px;
+}
+
+/* KPI Grid */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 10px;
+}
+.kpi-card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-top: 4px solid #2E86AB;
+    text-align: center;
+}
+.kpi-card.red    { border-top-color: #C73E1D; }
+.kpi-card.green  { border-top-color: #3BB273; }
+.kpi-card.orange { border-top-color: #F18F01; }
+.kpi-value { font-size: 26px; font-weight: 700; color: #2E86AB; }
+.kpi-card.red   .kpi-value { color: #C73E1D; }
+.kpi-card.green .kpi-value { color: #3BB273; }
+.kpi-card.orange .kpi-value { color: #F18F01; }
+.kpi-label { font-size: 11px; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    margin-bottom: 20px;
+}
+thead tr { background: #2E86AB; color: white; }
+th { padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; }
+td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f0f7ff; }
+tr.highlight td { background: #fff3cd; }
+tr.danger   td { background: #fdf0f0; }
+
+/* Insight boxes */
+.insight {
+    background: white;
+    border-left: 4px solid #F18F01;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.insight.good { border-left-color: #3BB273; }
+.insight.bad  { border-left-color: #C73E1D; }
+.insight b { color: #2c3e50; }
+
+/* Two column layout */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* ML section */
+.ml-box {
+    background: #eef3fb;
+    border: 1px solid #bee0f5;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+.ml-acc { font-size: 42px; font-weight: 800; color: #2E86AB; }
+
+/* Footer */
+.footer {
+    text-align: center;
+    color: #aaa;
+    font-size: 11px;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #ddd;
+}
+
+/* Print */
+@media print {
+    body { background: white; padding: 0; }
+    .header { background: #2E86AB !important; -webkit-print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<div class='page'>
+
+<!-- HEADER -->
+<div class='header'>
+  <h1>Manufacturing Analytics Report</h1>
+  <p>
+    Database: FactoryAnalytics &nbsp;|&nbsp;
+    Period: 01 Jan 2024 to 28 Jun 2024 &nbsp;|&nbsp;
+    Generated: 03 April 2026, 01:12
+  </p>
+</div>
+
+<!-- KPI SECTION -->
+<div class='section-title'>Key Performance Indicators</div>
+<div class='kpi-grid'>
+  <div class='kpi-card'>
+    <div class='kpi-value'>911,226</div>
+    <div class='kpi-label'>Total Units Produced</div>
+  </div>
+  <div class='kpi-card red'>
+    <div class='kpi-value'>2.82%</div>
+    <div class='kpi-label'>Overall Defect Rate</div>
+  </div>
+  <div class='kpi-card green'>
+    <div class='kpi-value'>96.97%</div>
+    <div class='kpi-label'>Avg Efficiency</div>
+  </div>
+  <div class='kpi-card orange'>
+    <div class='kpi-value'>605.5h</div>
+    <div class='kpi-label'>Total Downtime</div>
+  </div>
+</div>
+<div class='kpi-grid'>
+  <div class='kpi-card green'>
+    <div class='kpi-value'>Rs.24,922,699</div>
+    <div class='kpi-label'>Total Sales Revenue</div>
+  </div>
+  <div class='kpi-card red'>
+    <div class='kpi-value'>Rs.9,365,330</div>
+    <div class='kpi-label'>Revenue Lost (Defects)</div>
+  </div>
+  <div class='kpi-card orange'>
+    <div class='kpi-value'>Rs.503,290</div>
+    <div class='kpi-label'>Maintenance Cost</div>
+  </div>
+  <div class='kpi-card'>
+    <div class='kpi-value'>25,722</div>
+    <div class='kpi-label'>Total Defective Units</div>
+  </div>
+</div>
+
+<!-- MACHINE TABLE -->
+<div class='section-title'>Machine Performance Analysis</div>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th><th>Machine Name</th><th>Department</th><th>Age</th>
+      <th>Total Units</th><th>Defectives</th><th>Defect Rate</th>
+      <th>Avg Downtime</th><th>Avg Temp</th>
+    </tr>
+  </thead>
+  <tbody><tr class='danger'><td>M004</td><td><b>Milling Machine Delta</b> <b>[WORST]</b></td><td>Machining</td><td>7 yrs</td><td>99,980</td><td>4,332</td><td><span style='background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>4.33%</span></td><td>0.85 h</td><td>80.3 C</td></tr><tr class=''><td>M002</td><td><b>Hydraulic Press Beta</b></td><td>Pressing</td><td>5 yrs</td><td>108,574</td><td>4,223</td><td><span style='background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>3.89%</span></td><td>0.7 h</td><td>77.5 C</td></tr><tr class=''><td>M006</td><td><b>Grinding Unit Zeta</b></td><td>Finishing</td><td>4 yrs</td><td>123,674</td><td>3,472</td><td><span style='background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>2.81%</span></td><td>0.57 h</td><td>76.1 C</td></tr><tr class=''><td>M005</td><td><b>Injection Mold Epsilon</b></td><td>Molding</td><td>1 yrs</td><td>242,743</td><td>6,019</td><td><span style='background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>2.48%</span></td><td>0.32 h</td><td>71.1 C</td></tr><tr class=''><td>M003</td><td><b>Welding Robot Gamma</b></td><td>Assembly</td><td>3 yrs</td><td>185,950</td><td>4,446</td><td><span style='background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>2.39%</span></td><td>0.49 h</td><td>74.8 C</td></tr><tr class='highlight'><td>M001</td><td><b>CNC Lathe Alpha</b> <b>[BEST]</b></td><td>Machining</td><td>2 yrs</td><td>150,305</td><td>3,230</td><td><span style='background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>2.15%</span></td><td>0.43 h</td><td>73.1 C</td></tr></tbody>
+</table>
+
+<!-- MONTHLY + SHIFT -->
+<div class='two-col'>
+  <div>
+    <div class='section-title'>Monthly Trend</div>
+    <table>
+      <thead>
+        <tr><th>Month</th><th>Units</th><th>Defects</th>
+            <th>Defect%</th><th>Avg Temp</th><th>Avg Downtime</th></tr>
+      </thead>
+      <tbody><tr class=''><td><b>2024-01</b></td><td>155,492</td><td>4,387</td><td>2.82% </td><td>75.4 C</td><td>0.58 h</td></tr><tr class=''><td><b>2024-02</b></td><td>147,953</td><td>4,222</td><td>2.85% <span style='color:#C73E1D;font-size:14px;'>&#9650;</span></td><td>75.7 C</td><td>0.56 h</td></tr><tr class='highlight'><td><b>2024-03</b></td><td>156,740</td><td>4,335</td><td>2.77% <span style='color:#3BB273;font-size:14px;'>&#9660;</span></td><td>75.6 C</td><td>0.58 h</td></tr><tr class='danger'><td><b>2024-04</b></td><td>152,163</td><td>4,361</td><td>2.87% <span style='color:#C73E1D;font-size:14px;'>&#9650;</span></td><td>75.3 C</td><td>0.56 h</td></tr><tr class=''><td><b>2024-05</b></td><td>156,323</td><td>4,358</td><td>2.79% <span style='color:#3BB273;font-size:14px;'>&#9660;</span></td><td>75.5 C</td><td>0.56 h</td></tr><tr class=''><td><b>2024-06</b></td><td>142,555</td><td>4,059</td><td>2.85% <span style='color:#C73E1D;font-size:14px;'>&#9650;</span></td><td>75.4 C</td><td>0.51 h</td></tr></tbody>
+    </table>
+  </div>
+  <div>
+    <div class='section-title'>Shift Performance</div>
+    <table>
+      <thead>
+        <tr><th>Shift</th><th>Total Units</th><th>Defectives</th><th>Defect Rate</th></tr>
+      </thead>
+      <tbody><tr><td><b>Night</b></td><td>156,521</td><td>6,071</td><td><span style='background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>3.88%</span></td></tr><tr><td><b>Evening</b></td><td>258,731</td><td>8,493</td><td><span style='background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>3.28%</span></td></tr><tr><td><b>Morning</b></td><td>495,974</td><td>11,158</td><td><span style='background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:13px;'>2.25%</span></td></tr></tbody>
+    </table>
+
+    <div class='section-title'>ML Model Summary</div>
+    <div class='ml-box'>
+      <div class='ml-acc'>95.83%</div>
+      <div style='color:#555;margin-bottom:12px;'>Model Accuracy (Random Forest, 5-fold CV: 96.94%)</div>
+      <table style='box-shadow:none;margin:0;'>
+        <thead><tr><th>Feature</th><th>Importance</th></tr></thead>
+        <tbody><tr><td>vibration_level</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:85%;height:10px;border-radius:3px;'></div></div> <small>25.4</small></td></tr><tr><td>age_years</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:83%;height:10px;border-radius:3px;'></div></div> <small>25.0</small></td></tr><tr><td>units_made</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:52%;height:10px;border-radius:3px;'></div></div> <small>15.7</small></td></tr><tr><td>experience_yrs</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:41%;height:10px;border-radius:3px;'></div></div> <small>12.4</small></td></tr><tr><td>shift_num</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:25%;height:10px;border-radius:3px;'></div></div> <small>7.5</small></td></tr><tr><td>temperature</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:14%;height:10px;border-radius:3px;'></div></div> <small>4.2</small></td></tr><tr><td>dept_num</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:12%;height:10px;border-radius:3px;'></div></div> <small>3.7</small></td></tr><tr><td>downtime_hrs</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:8%;height:10px;border-radius:3px;'></div></div> <small>2.5</small></td></tr><tr><td>humidity</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:6%;height:10px;border-radius:3px;'></div></div> <small>1.7</small></td></tr><tr><td>pressure</td><td><div style='background:#e9ecef;border-radius:3px;width:150px;display:inline-block;vertical-align:middle;'><div style='background:#2E86AB;width:6%;height:10px;border-radius:3px;'></div></div> <small>1.7</small></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TOP 5 WORST RUNS -->
+<div class='section-title'>Top 5 Worst Production Runs</div>
+<table>
+  <thead>
+    <tr><th>#</th><th>Date</th><th>Machine</th><th>Shift</th><th>Operator</th>
+        <th>Units</th><th>Defects</th><th>Defect%</th><th>Temp</th></tr>
+  </thead>
+  <tbody><tr><td><b>1</b></td><td>2024-02-24</td><td>Hydraulic Press Beta</td><td>Night</td><td>Vijay Rao</td><td>592</td><td>44</td><td><b style='color:#C73E1D'>7.43%</b></td><td>90.9 C</td></tr><tr><td><b>2</b></td><td>2024-05-11</td><td>Milling Machine Delta</td><td>Evening</td><td>Suresh Patil</td><td>460</td><td>34</td><td><b style='color:#C73E1D'>7.39%</b></td><td>90.2 C</td></tr><tr><td><b>3</b></td><td>2024-06-21</td><td>Milling Machine Delta</td><td>Morning</td><td>Ramesh Kumar</td><td>617</td><td>44</td><td><b style='color:#C73E1D'>7.13%</b></td><td>91.2 C</td></tr><tr><td><b>4</b></td><td>2024-03-10</td><td>Hydraulic Press Beta</td><td>Night</td><td>Vijay Rao</td><td>679</td><td>47</td><td><b style='color:#C73E1D'>6.92%</b></td><td>90.7 C</td></tr><tr><td><b>5</b></td><td>2024-01-16</td><td>Milling Machine Delta</td><td>Evening</td><td>Suresh Patil</td><td>556</td><td>37</td><td><b style='color:#C73E1D'>6.65%</b></td><td>88.4 C</td></tr></tbody>
+</table>
+
+<!-- INSIGHTS -->
+<div class='section-title'>Key Insights & Recommendations</div>
+
+<div class='insight bad'>
+  <b>Worst Machine:</b> Milling Machine Delta has highest defect rate of
+  4.33%.
+  Immediate maintenance review recommended. Age: 7 years.
+</div>
+
+<div class='insight good'>
+  <b>Best Machine:</b> CNC Lathe Alpha performing excellently at
+  2.15% defect rate.
+  Use as benchmark for other machines.
+</div>
+
+<div class='insight bad'>
+  <b>Night Shift Alert:</b> Night shift has highest defect rate (3.88%).
+  Consider additional supervision, rest breaks, or workload adjustment.
+</div>
+
+<div class='insight'>
+  <b>Top ML Predictor:</b> vibration_level is the most important factor
+  for defect prediction. Monitor this parameter closely in real-time.
+</div>
+
+<div class='insight bad'>
+  <b>Revenue Loss Alert:</b> Rs.9,365,330
+  lost due to defective units. This is
+  37.6% of total sales revenue.
+  Reducing defect rate by 1% can save Rs.3,090,559 approximately.
+</div>
+
+<div class='insight good'>
+  <b>Best Period:</b> 2024-03 had lowest defect rate (2.77%).
+  Analyze what was different that month - replicate those conditions.
+</div>
+
+<!-- FOOTER -->
+<div class='footer'>
+  Manufacturing Analytics System &nbsp;|&nbsp;
+  Python + SQL Server + ML &nbsp;|&nbsp;
+  Auto-generated Report &nbsp;|&nbsp;
+  03 April 2026, 01:12
+  <br><br>
+  <small>Print: Ctrl+P &nbsp;|&nbsp; Save PDF: Print > Save as PDF</small>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,4 @@
+shift,total_runs,total_units,total_defects,avg_downtime,avg_temp,avg_efficiency,defect_rate
+Night,170,156521,6071,0.51,74.08294117647058,95.93,3.88
+Evening,342,258731,8493,0.6,76.04795321637427,96.56,3.28
+Morning,568,495974,11158,0.55,75.56161971830986,97.52,2.25

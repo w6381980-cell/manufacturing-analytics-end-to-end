@@ -1,0 +1,7 @@
+machine_id,machine_name,department,age_years,total_runs,total_units,total_defects,defect_rate_pct,avg_downtime,avg_temp,avg_vibration
+M004,Milling Machine Delta,Machining,7,180,99980,4332,4.33,0.85,80.3,4.05
+M002,Hydraulic Press Beta,Pressing,5,180,108574,4223,3.89,0.7,77.5,3.52
+M006,Grinding Unit Zeta,Finishing,4,180,123674,3472,2.81,0.57,76.1,3.14
+M005,Injection Mold Epsilon,Molding,1,180,242743,6019,2.48,0.32,71.1,2.3
+M003,Welding Robot Gamma,Assembly,3,180,185950,4446,2.39,0.49,74.8,2.87
+M001,CNC Lathe Alpha,Machining,2,180,150305,3230,2.15,0.43,73.1,2.66
